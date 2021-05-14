@@ -1,15 +1,8 @@
 .idea/
 
-.env
-*.env.json
-
 node_modules/
 
 dist/
-build/
 
 .npmrc
 *.log
-
-.nyc_output
-coverage

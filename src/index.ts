@@ -1,6 +1,22 @@
-import {DecodeFnType, JSType, DecodeType} from './types'
+type JSTypePrimitive = string | boolean | number | null | undefined
+type JSTypeObject = { [key: string]: JSType }
+type JSType = JSTypePrimitive | JSTypeObject
 
-export {DecodeType} from './types'
+type DecoderTypePrimitive = string
+type DecoderTypeObject = { [key: string]: unknown }
+type DecoderType = DecoderTypePrimitive | DecoderTypeObject
+
+type DecodeFnType<T> = (input: JSType) => T
+
+type DecodeDecoder<decoder> = [decoder] extends [DecoderTypePrimitive]
+    ? decoder
+    : { [key in keyof decoder]: DecodeType<decoder[key]> }
+
+export type DecodeType<decoder> = (decoder extends DecodeFnType<infer T>
+    ? [DecodeType<T>]
+    : decoder extends DecoderType
+        ? [DecodeDecoder<decoder>]
+        : [decoder])[0]
 
 export const asString: DecodeFnType<string> = (s: JSType) => {
     if (typeof s !== 'string') {
@@ -35,24 +51,22 @@ export const asBoolean: DecodeFnType<boolean> = (b: JSType) => {
     return b
 }
 
-const decode = <D>(decoder: D): DecodeFnType<D> => decoder as any
-
 export const environmentDecoder = <S>(schemaType: S): DecodeType<S> => {
     const environment = process.env
     const schema = Object.entries(schemaType)
 
     const missing = schema.filter(([key]) => !environment.hasOwnProperty(key)).map(([key]) => key)
     if (missing.length) {
-        throw (`Missing environment variables: \n${missing.join(`\n`)}\n`)
+        throw `Missing environment variables: \n${missing.join(`\n`)}\n`
     }
 
     return schema
         .map(([key, decoder]: [string, any]) => {
             try {
                 const value = environment[key]
-                return [key, decode(decoder)(value)]
+                return [key, decoder(value)]
             } catch (message) {
-                throw (`Error for environment "${key}": ${message}\n`)
+                throw `Error for environment "${key}": ${message}\n`
             }
         })
         .reduce((acc, [key, value]) => ({...acc, [key]: value}), {})
