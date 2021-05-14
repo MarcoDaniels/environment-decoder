@@ -1,36 +1,27 @@
-type JSPrimitive = string | boolean | number | null | undefined
-type JSObject = { [key: string]: JS }
-type JS = JSPrimitive | JSObject
+import {DecodeFnType, JSType, DecodeType} from './types'
 
-type DecodeFn<T> = (input: JS) => T
+export {DecodeType} from './types'
 
-export const literal = <p extends string>(literal: p): DecodeFn<p> => (value: JS) => {
-    if (literal !== value) {
-        throw `Value "${JSON.stringify(value)}" is not the literal "${JSON.stringify(literal)}"`
-    }
-    return literal
-}
-
-export const string: DecodeFn<string> = (s: JS) => {
+export const asString: DecodeFnType<string> = (s: JSType) => {
     if (typeof s !== 'string') {
-        throw `Type "${typeof s}" of ${JSON.stringify(s)} is not a primitive type`
+        throw `Type "${typeof s}" of ${JSON.stringify(s)} is not a string`
     }
     return s
 }
 
-export const number: DecodeFn<number> = (n: JS) => {
+export const asNumber: DecodeFnType<number> = (n: JSType) => {
     if (typeof n !== 'number') {
-        if (isNaN(Number(string(n)))) {
+        if (isNaN(Number(asString(n)))) {
             throw `Value ${JSON.stringify(n)} cannot be cast to number`
         }
-        return Number(string(n))
+        return Number(asString(n))
     }
     return n
 }
 
-export const boolean: DecodeFn<boolean> = (b: JS) => {
+export const asBoolean: DecodeFnType<boolean> = (b: JSType) => {
     if (typeof b !== 'boolean') {
-        switch (string(b)) {
+        switch (asString(b)) {
             case '0':
             case 'false':
                 return false
@@ -44,54 +35,35 @@ export const boolean: DecodeFn<boolean> = (b: JS) => {
     return b
 }
 
-const decode = <D>(decoder: D): DecodeFn<D> => decoder as any
-
 const fieldDecoder: unique symbol = Symbol('field-decoder')
 const optionalDecoder: unique symbol = Symbol('optional-decoder')
+const decode = <D>(decoder: D): DecodeFnType<D> => decoder as any
 
-type DecoderPrimitive = string
-type DecoderObject = { [key: string]: unknown }
-type Decoder = DecoderPrimitive | DecoderObject
+export const environmentDecoder = <schema>(s: schema): DecodeType<schema> => {
+    const env = process.env
 
-type DecodeDecoder<decoder> =
-    [decoder] extends [DecoderPrimitive] ?
-        decoder :
-        [decoder] extends [[infer decoderA, infer decoderB]] ?
-            [DecodeType<decoderA>, DecodeType<decoderB>] :
-            { [key in keyof decoder]: DecodeType<decoder[key]> }
-
-export type DecodeType<decoder> =
-    (decoder extends DecodeFn<infer T> ?
-        [DecodeType<T>] : decoder extends Decoder ?
-            [DecodeDecoder<decoder>] : [decoder]
-        )[0]
-
-
-export const environmentDecoder = <schema>(
-    env: NodeJS.ProcessEnv,
-    s: schema
-): DecodeType<schema> => Object.entries(s)
-    .map(([key, decoder]: [string, any]) => {
-        if (decoder[fieldDecoder] === true) {
-            return [key, decode(decoder)(env)]
-        }
-        // TODO: can we error for all?!
-        if (!env.hasOwnProperty(key)) {
-            if ((decoder)[optionalDecoder]) {
-                return [key, undefined]
+    return Object.entries(s)
+        .map(([key, decoder]: [string, any]) => {
+            if (decoder[fieldDecoder] === true) {
+                return [key, decode(decoder)(env)]
             }
-            throw `Cannot find key \`${key}\` in \`${JSON.stringify(env)}\``
-        }
-        try {
-            const jsonvalue = env[key]
-            return [key, decode(decoder)(jsonvalue)]
-        } catch (message) {
-            throw (
-                message +
-                `\nwhen trying to decode the key \`${key}\` in \`${JSON.stringify(
-                    env,
-                )}\``
-            )
-        }
-    })
-    .reduce((acc, [key, value]) => ({...acc, [key]: value}), {})
+            if (!env.hasOwnProperty(key)) {
+                if ((decoder)[optionalDecoder]) {
+                    return [key, undefined]
+                }
+                throw `Cannot find key \`${key}\` in \`${JSON.stringify(env)}\``
+            }
+            try {
+                const jsonvalue = env[key]
+                return [key, decode(decoder)(jsonvalue)]
+            } catch (message) {
+                throw (
+                    message +
+                    `\nwhen trying to decode the key \`${key}\` in \`${JSON.stringify(
+                        env,
+                    )}\``
+                )
+            }
+        })
+        .reduce((acc, [key, value]) => ({...acc, [key]: value}), {})
+}
