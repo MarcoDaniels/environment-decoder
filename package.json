@@ -1,15 +1,25 @@
 {
   "name": "environment-decoder",
-  "version": "0.0.1",
+  "description": "A decoder for the process.env",
+  "author": "Marco Daniel Martins <marcodanielmartins@gmail.com>",
+  "version": "1.0.0",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "license": "MIT",
+  "keywords": [
+    "environment",
+    "decoder",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MarcoDaniels/environment-decoder"
+  },
   "scripts": {
-    "build": "tsc",
-    "debug": "yarn build && node dist/debug.js"
+    "build": "tsc"
   },
   "devDependencies": {
-    "@types/node": "15.0.2",
+    "@types/node": "15.0.3",
     "typescript": "4.2.4"
   }
 }
