@@ -1,19 +1,9 @@
-import {environmentDecoder, asString, DecodeType, asNumber, asBoolean} from "./"
+import {environmentDecoder, asString, asNumber} from "./"
 
 const env = environmentDecoder({
     USER: asString,
-    WHAT: asString,
-    WHY: asNumber,
-    FAIL: asBoolean
+    WHAT: asNumber,
+    WHY: asString
 })
 
-type Stuff = DecodeType<typeof env>
-
-const a: Stuff = {
-    USER: '',
-    WHAT: '123',
-    WHY: 123,
-    FAIL: false
-}
-
-console.log(a, env)
+console.log(env)
