@@ -1,5 +1,8 @@
 # environment decoder
 
+[![Publish](https://github.com/marcodaniels/environment-decoder/workflows/Publish/badge.svg)](https://github.com/MarcoDaniels/environment-decoder/releases)
+[![GitHub release](https://img.shields.io/github/v/release/marcodaniels/environment-decoder?include_prereleases)](https://www.npmjs.com/package/environment-decoder)
+
 > A decoder for the `process.env`
 
 `environment-decoder` allows you to define an "interface" for the environment variables you need for your application
@@ -37,6 +40,16 @@ This creates a lot of uncertainty: are the environment flags set? what are their
 ## Usage
 
 With `environment-decoder` you define a decoder for your environment variable names, and their corresponded types.
+
+### Add it to your project
+
+```
+yarn add environment-decoder
+
+// or
+
+npm install environment-decoder
+```
 
 Since all environment variables are set as `string`, the decoder type primitives are written with `asType` as we will be
 casting (and validating) each variable.
@@ -78,5 +91,58 @@ const funWithEnv = (envParam: MyEnvType) => {
 * the environment variables are not set (will list all missing variables)
 * the environment variable cannot be cast to type (ex: using `asNumber` on `abcde`)
 
-It would be recommended to use `environmentDecoder` at the entry point of the application in order to catch errors as
-early as possible.
+All exceptions will be thrown at run time, so it would be recommended to use `environmentDecoder` as close as possible
+to the entry point of the application in order to catch errors as early as possible.
+
+## Examples
+
+Use it as React.js hook:
+
+_remember to use Error boundaries to handle exceptions thrown on your app_
+```typescript jsx
+// useEnvironment.js
+import {asString, environmentDecoder} from 'environment-decoder'
+
+export const useEnvironment = function () {
+    // if environment is not set will throw at this step
+    return environmentDecoder({
+        REACT_APP_MY_ENV_TEST: asString,
+        NODE_ENV: asString
+    })
+}
+
+// App.js
+import {useEnvironment} from './useEnvironment'
+
+function App() {
+    const env = useEnvironment()
+    return (
+        <div>
+            <h1>{env.REACT_APP_MY_ENV_TEST}</h1>
+        </div>
+    )
+}
+```
+
+Use it in a Node.js application:
+
+```javascript
+const fetch = require('node-fetch')
+const {environmentDecoder, asString} = require('environment-decoder')
+
+// if environment is not set will throw at this step
+const config = environmentDecoder({
+    FETCH_URL: asString,
+    ACCESS_TOKEN: asString
+})
+
+const response = await fetch(config.FETCH_URL, {
+    method: 'get',
+    headers: {
+        'Authorization': `Bearer ${config.ACCESS_TOKEN}`,
+        'Content-type': 'application/json'
+    }
+})
+
+const messageData = await response.json()
+```
