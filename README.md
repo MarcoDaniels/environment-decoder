@@ -5,8 +5,7 @@
 
 > A decoder for the `process.env`
 
-`environment-decoder` allows you to define an "interface" for the environment variables you need for your application
-and validates them.
+With `environment-decoder` you define a decoder for your environment variable names, and their corresponded types.
 
 This library took a big inspiration from typescript-json-decoder, the main differences are that `process.env` is just a
 record type (no need to nested decode)
@@ -39,9 +38,7 @@ This creates a lot of uncertainty: are the environment flags set? what are their
 
 ## Usage
 
-With `environment-decoder` you define a decoder for your environment variable names, and their corresponded types.
-
-### Add it to your project
+Add it to your project
 
 ```
 yarn add environment-decoder
@@ -63,7 +60,7 @@ const myEnv = environmentDecoder({
     FEATURE_FLAG: asBoolean
 })
 
-console.log(myEnv.BASE_PATH) // will output the process.env.BASE_PATH value
+console.log(myEnv.BASE_URL) // will output the process.env.BASE_URL value
 ```
 
 You can also use the output type created by `environmentDecoder` with `DecodeType<typeof ...>`:
@@ -99,6 +96,7 @@ to the entry point of the application in order to catch errors as early as possi
 Use it as React.js hook:
 
 _remember to use Error boundaries to handle exceptions thrown on your app_
+
 ```typescript jsx
 // useEnvironment.js
 import {asString, environmentDecoder} from 'environment-decoder'
