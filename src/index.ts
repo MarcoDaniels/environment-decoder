@@ -60,14 +60,21 @@ export const environmentDecoder = <S>(schemaType: S): DecodeType<S> => {
         throw `Missing environment variables: \n${missing.join(`\n`)}\n`
     }
 
-    return schema
+    const decoderErrors = schema
         .map(([key, decoder]: [string, any]) => {
             try {
-                const value = environment[key]
-                return [key, decoder(value)]
+                decoder(environment[key])
+                return false
             } catch (message) {
-                throw `Error for environment "${key}": ${message}\n`
+                return `${key}: ${message}`
             }
         })
-        .reduce((acc, [key, value]) => ({...acc, [key]: value}), {})
+        .filter((decoder) => decoder)
+    if (decoderErrors.length) {
+        throw `Decoder errors: \n${decoderErrors.join(`\n`)}\n`
+    }
+
+    return schema
+        .map(([key, decoder]: [string, any]) => [key, decoder(environment[key])])
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
 }
