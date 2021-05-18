@@ -2,7 +2,7 @@
   "name": "environment-decoder",
   "description": "A decoder for the process.env",
   "author": "Marco Daniel Martins <marcodanielmartins@gmail.com>",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
