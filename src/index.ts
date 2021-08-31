@@ -1,4 +1,5 @@
-type JSTypePrimitive = string | boolean | number | null | undefined
+type JSTypeAllow = string | boolean | number
+type JSTypePrimitive = JSTypeAllow | null | undefined
 type JSTypeObject = { [key: string]: JSType }
 type JSType = JSTypePrimitive | JSTypeObject
 
@@ -6,13 +7,17 @@ type DecoderTypePrimitive = string
 type DecoderTypeObject = { [key: string]: unknown }
 type DecoderType = DecoderTypePrimitive | DecoderTypeObject
 
-type DecodeFnType<T> = (input: JSType) => T
+type DecodeFnReturn<T> = (input: JSType) => T
+
+type DecodeFnType<T> = DecodeFnReturn<T> & {
+    withDefault: (s: T) => DecodeFnReturn<T>
+}
 
 type DecodeDecoder<decoder> = [decoder] extends [DecoderTypePrimitive]
     ? decoder
     : { [key in keyof decoder]: DecodeType<decoder[key]> }
 
-export type DecodeType<decoder> = (decoder extends DecodeFnType<infer T>
+export type DecodeType<decoder> = (decoder extends DecodeFnReturn<infer T>
     ? [DecodeType<T>]
     : decoder extends DecoderType
         ? [DecodeDecoder<decoder>]
@@ -25,6 +30,8 @@ export const asString: DecodeFnType<string> = (s: JSType) => {
     return s
 }
 
+asString.withDefault = (def) => (env: JSType) => !env ? def : asString(env)
+
 export const asNumber: DecodeFnType<number> = (n: JSType) => {
     if (typeof n !== 'number') {
         if (isNaN(Number(asString(n)))) {
@@ -34,6 +41,8 @@ export const asNumber: DecodeFnType<number> = (n: JSType) => {
     }
     return n
 }
+
+asNumber.withDefault = (def) => (env: JSType) => !env ? def : asNumber(env)
 
 export const asBoolean: DecodeFnType<boolean> = (b: JSType) => {
     if (typeof b !== 'boolean') {
@@ -51,17 +60,21 @@ export const asBoolean: DecodeFnType<boolean> = (b: JSType) => {
     return b
 }
 
+asBoolean.withDefault = (def) => (env: JSType) => !env ? def : asBoolean(env)
+
 export const environmentDecoder = <S>(schemaType: S): DecodeType<S> => {
     const environment = process.env
     const schema = Object.entries(schemaType)
 
-    const missing = schema.filter(([key]) => !environment.hasOwnProperty(key)).map(([key]) => key)
+    const missing = schema
+        .filter(([key, decoder]) => !environment.hasOwnProperty(key) && decoder.hasOwnProperty('withDefault'))
+        .map(([key]) => key)
     if (missing.length) {
         throw `Missing environment variables: \n${missing.join(`\n`)}\n`
     }
 
     const decoderErrors = schema
-        .map(([key, decoder]: [string, any]) => {
+        .map(([key, decoder]: [string, DecodeFnType<JSTypeAllow>]) => {
             try {
                 decoder(environment[key])
                 return false
