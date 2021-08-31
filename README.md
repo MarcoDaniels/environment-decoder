@@ -8,7 +8,7 @@
 With `environment-decoder` you define a decoder for your environment variable names, and their corresponded types.
 
 This library took a big inspiration from typescript-json-decoder, the main differences are that `process.env` is just a
-record type (no need to nested decode)
+record type (no need for nested decoding)
 and since all `process.env` values default to `string` in `environment-decoder` you can cast the value to the desired
 type ([see usage](#usage)).
 
@@ -51,7 +51,7 @@ npm install environment-decoder
 Since all environment variables are set as `string`, the decoder type primitives are written with `asType` as we will be
 casting (and validating) each variable.
 
-Use `.withDefault` to set default values in non-required environment variables.
+Use `.withDefault()` to set default values for non-required environment variables.
 
 ```typescript
 import {environmentDecoder, asBoolean, asString, asNumber} from 'environment-decoder'
@@ -90,9 +90,9 @@ const funWithEnv = (envParam: MyEnvType) => {
 
 ## Notes
 
-`environment-decoder` will throw exceptions for:
+`environment-decoder` will throw exceptions when:
 
-* the environment variables are not set (will list all missing variables)
+* the environment variable is not set and not using `.withDefault()` - all missing variables will be listed in the exception
 * the environment variable cannot be cast to type (ex: using `asNumber` on `abcde`)
 
 All exceptions will be thrown at run time, so it would be recommended to use `environmentDecoder` as close as possible
