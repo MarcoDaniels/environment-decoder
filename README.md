@@ -51,16 +51,23 @@ npm install environment-decoder
 Since all environment variables are set as `string`, the decoder type primitives are written with `asType` as we will be
 casting (and validating) each variable.
 
+Use `.withDefault` to set default values in non-required environment variables.
+
 ```typescript
 import {environmentDecoder, asBoolean, asString, asNumber} from 'environment-decoder'
 
 const myEnv = environmentDecoder({
     BASE_URL: asString,
     PORT: asNumber,
-    FEATURE_FLAG: asBoolean
+    FEATURE_FLAG: asBoolean,
+    OPTIONAL_FLAG: asString.withDefault('OPTION_1')
 })
 
-console.log(myEnv.BASE_URL) // will output the process.env.BASE_URL value
+// will output the process.env.BASE_URL value
+console.log(myEnv.BASE_URL)
+
+// will output the process.env.OPTIONAL_FLAG value if set, if not will output 'OPTION_1'
+console.log(myEnv.OPTIONAL_FLAG) 
 ```
 
 You can also use the output type created by `environmentDecoder` with `DecodeType<typeof ...>`:
