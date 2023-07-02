@@ -58,6 +58,7 @@ import {environmentDecoder, asBoolean, asString, asNumber} from 'environment-dec
 
 const myEnv = environmentDecoder({
     BASE_URL: asString,
+    ENVIRONMENT: asStringUnion("dev","qa", "prod"),
     PORT: asNumber,
     FEATURE_FLAG: asBoolean,
     OPTIONAL_FLAG: asString.withDefault('OPTION_1')
@@ -94,6 +95,7 @@ const funWithEnv = (envParam: MyEnvType) => {
 
 * the environment variable is not set and not using `.withDefault()` - all missing variables will be listed in the exception
 * the environment variable cannot be cast to type (ex: using `asNumber` on `abcde`)
+* using `asStringUnion` or `asNumberUnion` and the environment variable is not set to one of the allowed values
 
 All exceptions will be thrown at run time, so it would be recommended to use `environmentDecoder` as close as possible
 to the entry point of the application in order to catch errors as early as possible.
