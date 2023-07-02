@@ -20,8 +20,8 @@ type DecodeDecoder<decoder> = [decoder] extends [DecoderTypePrimitive]
 export type DecodeType<decoder> = (decoder extends DecodeFnReturn<infer T>
     ? [DecodeType<T>]
     : decoder extends DecoderType
-        ? [DecodeDecoder<decoder>]
-        : [decoder])[0]
+    ? [DecodeDecoder<decoder>]
+    : [decoder])[0]
 
 export const asString: DecodeFnType<string> = (s: JSType) => {
     if (typeof s !== 'string') {
@@ -31,6 +31,26 @@ export const asString: DecodeFnType<string> = (s: JSType) => {
 }
 
 asString.withDefault = (def) => (env: JSType) => !env ? def : asString(env)
+
+export const asStringUnion = <T extends string>(
+    ...allowedStrings: T[]
+): DecodeFnType<T> =>
+    (() => {
+        const decodeFn = (n: JSType) => {
+            const str = asString(n)
+
+            if (allowedStrings.some((n) => n === str)) {
+                return str as T
+            }
+
+            throw `allowed strings are ${allowedStrings.join(', ')}, got ${str}`
+        }
+
+        decodeFn.withDefault = (def: T) => (env: JSType) =>
+            !env ? def : asStringUnion(...allowedStrings)(env)
+
+        return decodeFn
+    })()
 
 export const asNumber: DecodeFnType<number> = (n: JSType) => {
     if (typeof n !== 'number') {
@@ -43,6 +63,26 @@ export const asNumber: DecodeFnType<number> = (n: JSType) => {
 }
 
 asNumber.withDefault = (def) => (env: JSType) => !env ? def : asNumber(env)
+
+export const asNumberUnion = <T extends number>(
+    ...allowedNumbers: T[]
+): DecodeFnType<T> =>
+    (() => {
+        const decodeFn = (n: JSType) => {
+            const num = asNumber(n)
+
+            if (allowedNumbers.some((n) => n === num)) {
+                return num as T
+            }
+
+            throw `allowed numbers are ${allowedNumbers.join(', ')}, got ${num}`
+        }
+
+        decodeFn.withDefault = (def: T) => (env: JSType) =>
+            !env ? def : asNumberUnion(...allowedNumbers)(env)
+
+        return decodeFn
+    })()
 
 export const asBoolean: DecodeFnType<boolean> = (b: JSType) => {
     if (typeof b !== 'boolean') {
@@ -62,19 +102,27 @@ export const asBoolean: DecodeFnType<boolean> = (b: JSType) => {
 
 asBoolean.withDefault = (def) => (env: JSType) => !env ? def : asBoolean(env)
 
-export const environmentDecoder = <S>(schemaType: S): DecodeType<S> => {
+export const environmentDecoder = <
+    S extends Record<string, DecodeFnReturn<JSTypeAllow>>
+>(
+    schemaType: S
+): DecodeType<S> => {
     const environment = process.env
     const schema = Object.entries(schemaType)
 
     const missing = schema
-        .filter(([key, decoder]) => !environment.hasOwnProperty(key) && decoder.hasOwnProperty('withDefault'))
+        .filter(
+            ([key, decoder]) =>
+                !environment.hasOwnProperty(key) &&
+                decoder.hasOwnProperty('withDefault')
+        )
         .map(([key]) => key)
     if (missing.length) {
         throw `Missing environment variables: \n${missing.join(`\n`)}\n`
     }
 
     const decoderErrors = schema
-        .map(([key, decoder]: [string, DecodeFnType<JSTypeAllow>]) => {
+        .map(([key, decoder]) => {
             try {
                 decoder(environment[key])
                 return false
@@ -88,6 +136,9 @@ export const environmentDecoder = <S>(schemaType: S): DecodeType<S> => {
     }
 
     return schema
-        .map(([key, decoder]: [string, any]) => [key, decoder(environment[key])])
+        .map(([key, decoder]: [string, any]) => [
+            key,
+            decoder(environment[key]),
+        ])
         .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
 }
